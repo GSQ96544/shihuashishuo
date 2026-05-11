@@ -1,6 +1,14 @@
 "use client";
 
-export default function LoadingOverlay() {
+interface Props {
+  title?: string;
+  subtitle?: string;
+}
+
+export default function LoadingOverlay({
+  title = "AI正在分析配料表...",
+  subtitle = "正在比对商品宣传与配料成分",
+}: Props) {
   return (
     <div
       className="fade-in"
@@ -25,9 +33,9 @@ export default function LoadingOverlay() {
       />
       <div style={{ textAlign: "center" }}>
         <p style={{ fontWeight: 600, fontSize: 16, marginBottom: 4 }}>
-          AI正在分析配料表...
+          {title}
         </p>
-        <p className="text-hint">正在比对商品宣传与配料成分</p>
+        <p className="text-hint">{subtitle}</p>
       </div>
     </div>
   );

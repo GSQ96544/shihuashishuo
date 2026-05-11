@@ -116,7 +116,12 @@ export default function Home() {
                   </button>
                 )}
 
-                {step === "ocr-processing" && <LoadingOverlay />}
+                {step === "ocr-processing" && (
+                  <LoadingOverlay
+                    title="正在识别图片文字..."
+                    subtitle="OCR提取 + AI智能解析商品信息"
+                  />
+                )}
               </>
             )}
 
@@ -191,7 +196,12 @@ export default function Home() {
         )}
 
         {/* === STEP: analyzing === */}
-        {step === "analyzing" && <LoadingOverlay />}
+        {step === "analyzing" && (
+                  <LoadingOverlay
+                    title="AI正在分析配料表..."
+                    subtitle="比对商品宣传与配料成分"
+                  />
+                )}
 
         {/* === STEP: done === */}
         {step === "done" && analysisResult && (

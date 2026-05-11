@@ -2,7 +2,62 @@ import type { OcrResult, AnalysisResult } from "@/lib/types";
 
 const DEEPSEEK_API = "https://api.deepseek.com/chat/completions";
 
-const SYSTEM_PROMPT = `你是食品配料分析专家。你的任务是对比商品宣传信息与配料表，识别虚假宣传。
+// ── Step 1: Parse raw OCR text into structured fields ──
+
+const PARSE_PROMPT = `你是食品包装信息提取专家。从OCR识别的原始文字中提取结构化信息。
+
+返回严格JSON：
+{
+  "brand": "品牌名（未找到则空字符串）",
+  "productName": "商品名（如：100%椰子水、纯牛奶）",
+  "claimsText": "包装上的宣传语（如：无添加、天然、0糖等），用逗号分隔",
+  "ingredientsText": "配料表原文（通常以'配料：'或'配料表：'开头的那段）"
+}
+
+规则：
+- productName 是包装上最显眼的商品名，不是配料表里的内容
+- ingredientsText 要保留配料表的完整顺序（含量从高到低）
+- 如果文字中找不到某项，返回空字符串`;
+
+export async function parseOcrText(rawText: string): Promise<OcrResult> {
+  const apiKey = process.env.DEEPSEEK_API_KEY;
+  if (!apiKey) throw new Error("DEEPSEEK_API_KEY not configured");
+
+  const res = await fetch(DEEPSEEK_API, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({
+      model: "deepseek-chat",
+      messages: [
+        { role: "system", content: PARSE_PROMPT },
+        { role: "user", content: rawText.slice(0, 3000) },
+      ],
+      response_format: { type: "json_object" },
+      max_tokens: 512,
+      temperature: 0,
+    }),
+  });
+
+  if (!res.ok) throw new Error(`DeepSeek parse failed: ${res.status}`);
+  const data = await res.json();
+  const content = data.choices?.[0]?.message?.content;
+  if (!content) throw new Error("Empty parse response");
+
+  const p = JSON.parse(content);
+  return {
+    brand: p.brand || "",
+    productName: p.productName || "",
+    claimsText: p.claimsText || "",
+    ingredientsText: p.ingredientsText || "",
+  };
+}
+
+// ── Step 2: Analyze product claims vs ingredients ──
+
+const ANALYZE_PROMPT = `你是食品配料分析专家。你的任务是对比商品宣传信息与配料表，识别虚假宣传。
 
 分析规则：
 1. 商品名暗示单一成分（如"100%椰子水"、"纯牛奶"），但配料含其他非该成分的物质 → 严重问题
@@ -58,7 +113,7 @@ export async function callDeepSeek(ocrResult: OcrResult): Promise<AnalysisResult
     body: JSON.stringify({
       model: "deepseek-chat",
       messages: [
-        { role: "system", content: SYSTEM_PROMPT },
+        { role: "system", content: ANALYZE_PROMPT },
         { role: "user", content: userMessage },
       ],
       response_format: { type: "json_object" },

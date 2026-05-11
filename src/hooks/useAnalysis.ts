@@ -68,29 +68,52 @@ export function useAnalysis() {
     }));
   }, []);
 
-  // Camera mode: run real OCR on both images
+  // Camera mode: OCR → DeepSeek parse → structured fields
   const runOcr = useCallback(async () => {
     setState((s) => ({ ...s, step: "ocr-processing", error: null }));
     try {
+      // Step 1: OCR both images in parallel
       const [frontText, labelText] = await Promise.all([
         state.frontImage ? ocrImage(state.frontImage) : Promise.resolve(""),
         state.labelImage ? ocrImage(state.labelImage) : Promise.resolve(""),
       ]);
 
-      // Heuristic: use front image text for brand/product/claims, label for ingredients
-      const result: OcrResult = {
-        brand: "",
-        productName: "",
-        claimsText: frontText,
-        ingredientsText: labelText || frontText, // fallback to front if no label photo
-      };
+      const combinedText = [frontText, labelText].filter(Boolean).join("\n");
+      if (!combinedText.trim()) {
+        setState((s) => ({
+          ...s,
+          step: "error",
+          error: "未识别到文字，请拍摄清晰的包装照片",
+        }));
+        return;
+      }
+
+      // Step 2: DeepSeek parses raw OCR into structured fields
+      let result: OcrResult;
+      try {
+        const parseRes = await fetch("/api/parse-ocr", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ rawText: combinedText }),
+        });
+        const parseData = await parseRes.json();
+        if (parseData.error) {
+          // Fallback: dump raw text into editor for manual editing
+          result = { brand: "", productName: "", claimsText: frontText, ingredientsText: labelText || frontText };
+        } else {
+          result = parseData;
+        }
+      } catch {
+        // Parse failed, fallback to raw OCR text
+        result = { brand: "", productName: "", claimsText: frontText, ingredientsText: labelText || frontText };
+      }
 
       setState((s) => ({ ...s, ocrResult: result, step: "ocr-review" }));
     } catch (err) {
       setState((s) => ({
         ...s,
         step: "error",
-        error: err instanceof Error ? err.message : "OCR识别失败",
+        error: err instanceof Error ? err.message : "识别失败，请重试",
       }));
     }
   }, [state.frontImage, state.labelImage]);
