@@ -2,7 +2,17 @@
 
 import { useState, useCallback } from "react";
 import type { FlowStep, AppState, OcrResult, AnalysisResult, InputMode } from "@/lib/types";
-import { mockOcrFromImages } from "@/lib/mock-data";
+
+async function ocrImage(dataUrl: string): Promise<string> {
+  const res = await fetch("/api/ocr", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ imageDataUrl: dataUrl }),
+  });
+  const data = await res.json();
+  if (data.error) throw new Error(data.error);
+  return data.text || "";
+}
 
 const initialState: AppState = {
   mode: "camera",
@@ -58,13 +68,31 @@ export function useAnalysis() {
     }));
   }, []);
 
-  // Camera mode: run OCR
+  // Camera mode: run real OCR on both images
   const runOcr = useCallback(async () => {
     setState((s) => ({ ...s, step: "ocr-processing", error: null }));
-    // Mock: simulate OCR delay
-    await new Promise((r) => setTimeout(r, 1500));
-    const result = mockOcrFromImages(state.frontImage, state.labelImage);
-    setState((s) => ({ ...s, ocrResult: result, step: "ocr-review" }));
+    try {
+      const [frontText, labelText] = await Promise.all([
+        state.frontImage ? ocrImage(state.frontImage) : Promise.resolve(""),
+        state.labelImage ? ocrImage(state.labelImage) : Promise.resolve(""),
+      ]);
+
+      // Heuristic: use front image text for brand/product/claims, label for ingredients
+      const result: OcrResult = {
+        brand: "",
+        productName: "",
+        claimsText: frontText,
+        ingredientsText: labelText || frontText, // fallback to front if no label photo
+      };
+
+      setState((s) => ({ ...s, ocrResult: result, step: "ocr-review" }));
+    } catch (err) {
+      setState((s) => ({
+        ...s,
+        step: "error",
+        error: err instanceof Error ? err.message : "OCR识别失败",
+      }));
+    }
   }, [state.frontImage, state.labelImage]);
 
   // Manual mode: skip OCR, go direct to review

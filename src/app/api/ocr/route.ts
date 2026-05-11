@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { mockOcrFromImages } from "@/lib/mock-data";
+import { recognizeText } from "@/lib/baidu-ocr";
 
 export async function POST(request: Request) {
   try {
@@ -10,11 +10,25 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "未提供图片" }, { status: 400 });
     }
 
-    // Mock mode: return simulated OCR result
-    // TODO: Replace with real Baidu OCR API call
-    const result = mockOcrFromImages(imageDataUrl, imageDataUrl);
+    let text: string;
+    try {
+      text = await recognizeText(imageDataUrl);
+    } catch (err) {
+      console.error("Baidu OCR failed:", err);
+      return NextResponse.json(
+        { error: "文字识别失败，请确认图片清晰后重试" },
+        { status: 500 }
+      );
+    }
 
-    return NextResponse.json({ text: JSON.stringify(result) });
+    if (!text.trim()) {
+      return NextResponse.json(
+        { error: "未识别到文字，请拍摄清晰的配料表照片" },
+        { status: 422 }
+      );
+    }
+
+    return NextResponse.json({ text });
   } catch {
     return NextResponse.json({ error: "OCR识别失败" }, { status: 500 });
   }
