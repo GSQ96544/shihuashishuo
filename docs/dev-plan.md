@@ -39,16 +39,16 @@
 - [x] 风险等级标识
 - [x] 一句话总结建议
 
-## 阶段六：主页面 ✅ 已完成
-- [x] page.tsx — 串联全部组件和交互流程
-
-## 阶段七：测试与打磨 🚧 待完成
-- [ ] 本地运行测试（`npm run dev`）
+## 阶段七：测试与打磨 🚧 进行中
+- [x] 本地运行测试（`npm run dev`）
+- [x] `npm run build` 生产构建验证
+- [x] `npx tsc --noEmit` TypeScript类型检查
+- [x] Mock规则引擎动态化（5条检测规则）
+- [x] Git初始化 + GitHub推送
+- [x] Vercel部署上线
 - [ ] 移动端浏览器测试
 - [ ] 微信内置浏览器兼容测试
-- [ ] 错误场景处理
 - [ ] localStorage 结果缓存
-- [ ] 免责声明文本
 - [ ] PWA manifest.json & 图标
 
 ## 阶段八：接入真实API 🚧 待完成

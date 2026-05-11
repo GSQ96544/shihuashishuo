@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { callDeepSeek } from "@/lib/deepseek";
 import { mockAnalyze } from "@/lib/mock-data";
 import type { OcrResult } from "@/lib/types";
 
@@ -21,9 +22,14 @@ export async function POST(request: Request) {
       ingredientsText,
     };
 
-    // Mock mode: return simulated analysis
-    // TODO: Replace with real DeepSeek API call
-    const result = mockAnalyze(ocrResult);
+    // Try real AI first, fall back to mock
+    let result;
+    try {
+      result = await callDeepSeek(ocrResult);
+    } catch (aiErr) {
+      console.warn("DeepSeek unavailable, using mock:", aiErr);
+      result = mockAnalyze(ocrResult);
+    }
 
     return NextResponse.json(result);
   } catch {

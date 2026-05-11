@@ -2,7 +2,7 @@
 
 import { useState, useCallback } from "react";
 import type { FlowStep, AppState, OcrResult, AnalysisResult, InputMode } from "@/lib/types";
-import { mockOcrFromImages, mockAnalyze } from "@/lib/mock-data";
+import { mockOcrFromImages } from "@/lib/mock-data";
 
 const initialState: AppState = {
   mode: "camera",
@@ -78,13 +78,29 @@ export function useAnalysis() {
     setState((s) => ({ ...s, ocrResult: result, step: "ocr-review" }));
   }, [state.manualProductName, state.manualIngredients]);
 
-  // Run analysis
+  // Run analysis (calls API)
   const runAnalysis = useCallback(async (ocrResult: OcrResult) => {
     setState((s) => ({ ...s, step: "analyzing", error: null }));
-    // Mock: simulate AI analysis delay
-    await new Promise((r) => setTimeout(r, 2000));
-    const result: AnalysisResult = mockAnalyze(ocrResult);
-    setState((s) => ({ ...s, analysisResult: result, step: "done" }));
+    try {
+      const res = await fetch("/api/analyze", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          productName: ocrResult.productName,
+          ingredientsText: ocrResult.ingredientsText,
+          claimsText: ocrResult.claimsText,
+          brand: ocrResult.brand,
+        }),
+      });
+      const data = await res.json();
+      if (data.error) {
+        setState((s) => ({ ...s, step: "error", error: data.error }));
+      } else {
+        setState((s) => ({ ...s, analysisResult: data as AnalysisResult, step: "done" }));
+      }
+    } catch {
+      setState((s) => ({ ...s, step: "error", error: "网络异常，请稍后重试" }));
+    }
   }, []);
 
   const resetAll = useCallback(() => {
