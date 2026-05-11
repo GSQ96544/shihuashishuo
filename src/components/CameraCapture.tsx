@@ -17,7 +17,7 @@ export default function CameraCapture({ onImageReady, label, hint }: Props) {
       const img = new Image();
       img.onload = () => {
         const canvas = document.createElement("canvas");
-        const maxDim = 1920;
+        const maxDim = 4096;
         let w = img.width;
         let h = img.height;
         if (w > maxDim || h > maxDim) {
@@ -29,7 +29,7 @@ export default function CameraCapture({ onImageReady, label, hint }: Props) {
         canvas.height = h;
         const ctx = canvas.getContext("2d")!;
         ctx.drawImage(img, 0, 0, w, h);
-        resolve(canvas.toDataURL("image/jpeg", 0.7));
+        resolve(canvas.toDataURL("image/jpeg", 0.92));
       };
       img.src = URL.createObjectURL(file);
     });

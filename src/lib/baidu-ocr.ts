@@ -39,7 +39,7 @@ export async function recognizeText(imageBase64: string): Promise<string> {
 
   const token = await getAccessToken();
   const res = await fetch(
-    `https://aip.baidubce.com/rest/2.0/ocr/v1/general_basic?access_token=${token}`,
+    `https://aip.baidubce.com/rest/2.0/ocr/v1/accurate_basic?access_token=${token}`,
     {
       method: "POST",
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
