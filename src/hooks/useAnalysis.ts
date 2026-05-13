@@ -54,38 +54,16 @@ export function useAnalysis() {
     setState((s) => ({ ...s, manualIngredients: v }));
   }, []);
 
-  const handleUrlFetched = useCallback(async (text: string) => {
+  const handleUrlFetched = useCallback(async (data: Record<string, string>) => {
     setState((s) => ({ ...s, step: "ocr-processing" }));
 
-    // Use DeepSeek to parse page text into structured fields
-    let result: OcrResult;
-    try {
-      const parseRes = await fetch("/api/parse-ocr", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ rawText: text }),
-      });
-      const parseData = await parseRes.json();
-      if (parseData.error) {
-        result = {
-          brand: "",
-          productName: "",
-          claimsText: text,
-          ingredientsText: text,
-          sourceUrl: state.urlInput,
-        };
-      } else {
-        result = { ...parseData, sourceUrl: state.urlInput };
-      }
-    } catch {
-      result = {
-        brand: "",
-        productName: "",
-        claimsText: text,
-        ingredientsText: text,
-        sourceUrl: state.urlInput,
-      };
-    }
+    const result: OcrResult = {
+      brand: data.brand || "",
+      productName: data.productName || data.pageTitle || "",
+      claimsText: data.claimsText || data.text || "",
+      ingredientsText: data.ingredientsText || data.text || "",
+      sourceUrl: data.sourceUrl || state.urlInput,
+    };
 
     setState((s) => ({ ...s, ocrResult: result, step: "ocr-review" }));
   }, [state.urlInput]);

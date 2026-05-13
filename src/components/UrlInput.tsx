@@ -5,7 +5,7 @@ import { useState } from "react";
 interface Props {
   url: string;
   onUrlChange: (v: string) => void;
-  onFetch: (text: string) => Promise<void>;
+  onFetch: (data: Record<string, string>) => Promise<void>;
 }
 
 export default function UrlInput({ url, onUrlChange, onFetch }: Props) {
@@ -27,8 +27,8 @@ export default function UrlInput({ url, onUrlChange, onFetch }: Props) {
         setError(data.error);
         setLoading(false);
       } else {
-        setLoading(true); // Stay loading during parse
-        await onFetch(data.text || "未能提取到内容，请尝试手动输入");
+        setLoading(true);
+        await onFetch(data);
         setLoading(false);
       }
     } catch {
