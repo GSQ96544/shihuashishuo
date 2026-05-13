@@ -21,24 +21,8 @@ export default function OcrResultEditor({ ocrResult, onChange, onConfirm }: Prop
       >
         📋 确认商品信息
       </h3>
-      {!ocrResult.productName && !ocrResult.ingredientsText && (
-        <div
-          style={{
-            background: "#fff8e1",
-            border: "1px solid #ffe082",
-            borderRadius: "var(--radius-sm)",
-            padding: "10px 14px",
-            marginBottom: 12,
-            fontSize: 13,
-            color: "#f57f17",
-            lineHeight: 1.5,
-          }}
-        >
-          💡 当前为演示模式，请在下方手动填写商品信息后点击"开始分析"
-        </div>
-      )}
       <p className="text-hint" style={{ marginBottom: 16 }}>
-        请核对或手动填写以下信息，完成后点击"开始分析"
+        请核对AI识别的内容，可手动修改，确认后点击"开始分析"
       </p>
 
       <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>

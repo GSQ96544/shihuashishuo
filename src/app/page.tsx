@@ -4,7 +4,6 @@ import { useAnalysis } from "@/hooks/useAnalysis";
 import InputSelector from "@/components/InputSelector";
 import CameraCapture from "@/components/CameraCapture";
 import ManualInput from "@/components/ManualInput";
-import UrlInput from "@/components/UrlInput";
 import ImagePreview from "@/components/ImagePreview";
 import StepIndicator from "@/components/StepIndicator";
 import OcrResultEditor from "@/components/OcrResultEditor";
@@ -17,10 +16,8 @@ export default function Home() {
     setMode,
     setFrontImage,
     setLabelImage,
-    setUrlInput,
     setManualProductName,
     setManualIngredients,
-    handleUrlFetched,
     runOcr,
     submitManual,
     runAnalysis,
@@ -28,7 +25,7 @@ export default function Home() {
     updateOcrResult,
   } = useAnalysis();
 
-  const { mode, step, frontImage, labelImage, ocrResult, analysisResult, urlInput, manualProductName, manualIngredients } = state;
+  const { mode, step, frontImage, labelImage, ocrResult, analysisResult, manualProductName, manualIngredients } = state;
 
   const currentStepNumber =
     step === "input" || step === "ocr-processing" ? 1
@@ -145,24 +142,6 @@ export default function Home() {
               </>
             )}
 
-            {/* URL Mode */}
-            {mode === "url" && (
-              <>
-                {step !== "ocr-processing" && (
-                  <UrlInput
-                    url={urlInput}
-                    onUrlChange={setUrlInput}
-                    onFetch={handleUrlFetched}
-                  />
-                )}
-                {step === "ocr-processing" && (
-                  <LoadingOverlay
-                    title="正在抓取并解析商品信息..."
-                    subtitle="从页面提取品牌、品名、配料表"
-                  />
-                )}
-              </>
-            )}
           </div>
         )}
 

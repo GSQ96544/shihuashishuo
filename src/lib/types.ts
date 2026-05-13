@@ -6,14 +6,13 @@ export type FlowStep =
   | "done"
   | "error";
 
-export type InputMode = "camera" | "manual" | "url";
+export type InputMode = "camera" | "manual";
 
 export interface OcrResult {
   brand: string;
   productName: string;
   claimsText: string;
   ingredientsText: string;
-  sourceUrl?: string;
 }
 
 export interface Warning {
@@ -40,7 +39,6 @@ export interface AppState {
   ocrResult: OcrResult | null;
   analysisResult: AnalysisResult | null;
   error: string | null;
-  urlInput: string;
   manualProductName: string;
   manualIngredients: string;
 }

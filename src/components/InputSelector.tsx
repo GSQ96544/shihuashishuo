@@ -10,7 +10,6 @@ interface Props {
 const tabs: { key: InputMode; label: string; icon: string }[] = [
   { key: "camera", label: "拍照识别", icon: "📷" },
   { key: "manual", label: "手动输入", icon: "✏️" },
-  { key: "url", label: "粘贴链接", icon: "🔗" },
 ];
 
 export default function InputSelector({ mode, onModeChange }: Props) {
