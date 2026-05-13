@@ -12,26 +12,50 @@ export default function CameraCapture({ onImageReady, label, hint }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [compressing, setCompressing] = useState(false);
 
-  async function compressImage(file: File): Promise<string> {
+  const BAIDU_MAX_BYTES = 4 * 1024 * 1024; // Baidu OCR base64 limit
+
+  // Read file directly as base64 — no Canvas quality loss
+  function readAsDataURL(file: File): Promise<string> {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.readAsDataURL(file);
+    });
+  }
+
+  // Only compress if exceeds Baidu's 4MB limit
+  async function prepareImage(file: File): Promise<string> {
+    const direct = await readAsDataURL(file);
+    if (direct.length <= BAIDU_MAX_BYTES) {
+      return direct; // Original quality, no loss
+    }
+
+    // File too large — gentle resize until fits
     return new Promise((resolve) => {
       const img = new Image();
       img.onload = () => {
         const canvas = document.createElement("canvas");
-        const maxDim = 4096;
         let w = img.width;
         let h = img.height;
-        if (w > maxDim || h > maxDim) {
-          const ratio = Math.min(maxDim / w, maxDim / h);
-          w = Math.round(w * ratio);
-          h = Math.round(h * ratio);
+
+        // Step down dimensions until base64 fits under 4MB
+        const quality = 0.92;
+        let dataUrl = "";
+        while (w >= 1024) {
+          canvas.width = w;
+          canvas.height = h;
+          const ctx = canvas.getContext("2d")!;
+          ctx.imageSmoothingQuality = "high";
+          ctx.drawImage(img, 0, 0, w, h);
+          dataUrl = canvas.toDataURL("image/jpeg", quality);
+          if (dataUrl.length <= BAIDU_MAX_BYTES) break;
+          // Reduce by 15% each step
+          w = Math.round(w * 0.85);
+          h = Math.round(h * 0.85);
         }
-        canvas.width = w;
-        canvas.height = h;
-        const ctx = canvas.getContext("2d")!;
-        ctx.drawImage(img, 0, 0, w, h);
-        resolve(canvas.toDataURL("image/jpeg", 0.92));
+        resolve(dataUrl);
       };
-      img.src = URL.createObjectURL(file);
+      img.src = direct;
     });
   }
 
@@ -39,7 +63,7 @@ export default function CameraCapture({ onImageReady, label, hint }: Props) {
     const file = e.target.files?.[0];
     if (!file) return;
     setCompressing(true);
-    const dataUrl = await compressImage(file);
+    const dataUrl = await prepareImage(file);
     setCompressing(false);
     onImageReady(dataUrl);
   }
