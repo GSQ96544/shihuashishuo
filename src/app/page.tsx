@@ -6,7 +6,6 @@ import CameraCapture from "@/components/CameraCapture";
 import ManualInput from "@/components/ManualInput";
 import ImagePreview from "@/components/ImagePreview";
 import StepIndicator from "@/components/StepIndicator";
-import OcrResultEditor from "@/components/OcrResultEditor";
 import LoadingOverlay from "@/components/LoadingOverlay";
 import ResultCard from "@/components/ResultCard";
 
@@ -20,16 +19,15 @@ export default function Home() {
     setManualIngredients,
     runOcr,
     submitManual,
-    runAnalysis,
+    reanalyze,
     resetAll,
-    updateOcrResult,
   } = useAnalysis();
 
   const { mode, step, frontImage, labelImage, ocrResult, analysisResult, manualProductName, manualIngredients } = state;
 
   const currentStepNumber =
     step === "input" || step === "ocr-processing" ? 1
-    : step === "ocr-review" ? 2
+    : step === "analyzing" ? 2
     : 3;
 
   return (
@@ -59,7 +57,7 @@ export default function Home() {
 
       {/* ========== Main Content ========== */}
       <main style={{ flex: 1 }}>
-        {/* === STEP: input === */}
+        {/* === STEP: input / ocr-processing === */}
         {(step === "input" || step === "ocr-processing") && (
           <div className="fade-in">
             <InputSelector mode={mode} onModeChange={setMode} />
@@ -70,13 +68,13 @@ export default function Home() {
                 {!frontImage ? (
                   <CameraCapture
                     onImageReady={setFrontImage}
-                    label="点击拍摄产品正面"
-                    hint="拍摄包装正面，获取品牌、品名和宣传语"
+                    label="点击拍摄配料表"
+                    hint="拍一张配料表即可，AI会自动识别品名和配料"
                   />
                 ) : (
                   <ImagePreview
                     src={frontImage}
-                    label="产品正面照"
+                    label="配料表照片"
                     onRetake={() => {
                       setFrontImage("");
                       setTimeout(() => setFrontImage(""), 0);
@@ -84,32 +82,13 @@ export default function Home() {
                   />
                 )}
 
-                {frontImage && !labelImage && (
-                  <CameraCapture
-                    onImageReady={setLabelImage}
-                    label="点击拍摄配料表"
-                    hint="拍摄包装背面的配料表部分"
-                  />
-                )}
-
-                {labelImage && (
-                  <ImagePreview
-                    src={labelImage}
-                    label="配料表照片"
-                    onRetake={() => {
-                      setLabelImage("");
-                      setTimeout(() => setLabelImage(""), 0);
-                    }}
-                  />
-                )}
-
-                {frontImage && labelImage && (
+                {frontImage && (
                   <button
                     className="btn-primary"
                     onClick={runOcr}
                     style={{ marginTop: 8 }}
                   >
-                    识别文字 →
+                    开始分析 →
                   </button>
                 )}
 
@@ -137,65 +116,30 @@ export default function Home() {
                   disabled={!manualProductName.trim() || !manualIngredients.trim()}
                   style={{ marginTop: 16 }}
                 >
-                  下一步 →
+                  开始分析 →
                 </button>
               </>
             )}
-
-          </div>
-        )}
-
-        {/* === STEP: ocr-review === */}
-        {step === "ocr-review" && ocrResult && (
-          <div className="fade-in">
-            {/* Show images if camera mode */}
-            {mode === "camera" && frontImage && (
-              <div style={{ display: "flex", gap: 12, marginBottom: 16 }}>
-                <div style={{ flex: 1 }}>
-                  <ImagePreview
-                    src={frontImage}
-                    label="正面照"
-                    onRetake={() => {
-                      setFrontImage("");
-                      setTimeout(() => setFrontImage(""), 0);
-                    }}
-                  />
-                </div>
-                {labelImage && (
-                  <div style={{ flex: 1 }}>
-                    <ImagePreview
-                      src={labelImage}
-                      label="配料表"
-                      onRetake={() => {
-                        setLabelImage("");
-                        setTimeout(() => setLabelImage(""), 0);
-                      }}
-                    />
-                  </div>
-                )}
-              </div>
-            )}
-
-            <OcrResultEditor
-              ocrResult={ocrResult}
-              onChange={updateOcrResult}
-              onConfirm={() => runAnalysis(ocrResult)}
-            />
           </div>
         )}
 
         {/* === STEP: analyzing === */}
         {step === "analyzing" && (
-                  <LoadingOverlay
-                    title="AI正在分析配料表..."
-                    subtitle="比对商品宣传与配料成分"
-                  />
-                )}
+          <LoadingOverlay
+            title="AI正在分析配料表..."
+            subtitle="比对商品宣传与配料成分"
+          />
+        )}
 
         {/* === STEP: done === */}
-        {step === "done" && analysisResult && (
+        {step === "done" && analysisResult && ocrResult && (
           <div className="fade-in">
-            <ResultCard result={analysisResult} />
+            <ResultCard
+              result={analysisResult}
+              ocrResult={ocrResult}
+              onReanalyze={reanalyze}
+              isAnalyzing={false}
+            />
 
             <div style={{ display: "flex", gap: 12, marginTop: 20 }}>
               <button
@@ -211,24 +155,27 @@ export default function Home() {
 
         {/* === STEP: error === */}
         {step === "error" && (
-          <div
-            className="card fade-in"
-            style={{ textAlign: "center", padding: "32px 20px" }}
-          >
+          <div className="card fade-in" style={{ textAlign: "center", padding: "32px 20px" }}>
             <span style={{ fontSize: 40 }}>😞</span>
             <p style={{ marginTop: 12, fontSize: 16, fontWeight: 600 }}>
-              分析失败
+              {state.error || "识别失败"}
             </p>
-            <p className="text-hint" style={{ marginTop: 4 }}>
-              {state.error || "网络异常，请稍后重试"}
-            </p>
-            <button
-              className="btn-primary"
-              onClick={resetAll}
-              style={{ marginTop: 20 }}
-            >
-              重新开始
-            </button>
+            <div style={{ display: "flex", gap: 12, marginTop: 20 }}>
+              <button
+                className="btn-outline"
+                onClick={resetAll}
+                style={{ flex: 1 }}
+              >
+                重新拍照
+              </button>
+              <button
+                className="btn-primary"
+                onClick={() => setMode("manual")}
+                style={{ flex: 1 }}
+              >
+                手动输入
+              </button>
+            </div>
           </div>
         )}
       </main>
