@@ -54,19 +54,41 @@ export function useAnalysis() {
     setState((s) => ({ ...s, manualIngredients: v }));
   }, []);
 
-  const handleUrlFetched = useCallback((text: string) => {
-    setState((s) => ({
-      ...s,
-      ocrResult: {
+  const handleUrlFetched = useCallback(async (text: string) => {
+    setState((s) => ({ ...s, step: "ocr-processing" }));
+
+    // Use DeepSeek to parse page text into structured fields
+    let result: OcrResult;
+    try {
+      const parseRes = await fetch("/api/parse-ocr", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ rawText: text }),
+      });
+      const parseData = await parseRes.json();
+      if (parseData.error) {
+        result = {
+          brand: "",
+          productName: "",
+          claimsText: text,
+          ingredientsText: text,
+          sourceUrl: state.urlInput,
+        };
+      } else {
+        result = { ...parseData, sourceUrl: state.urlInput };
+      }
+    } catch {
+      result = {
         brand: "",
-        productName: s.urlInput,
+        productName: "",
         claimsText: text,
         ingredientsText: text,
-        sourceUrl: s.urlInput,
-      },
-      step: "ocr-review",
-    }));
-  }, []);
+        sourceUrl: state.urlInput,
+      };
+    }
+
+    setState((s) => ({ ...s, ocrResult: result, step: "ocr-review" }));
+  }, [state.urlInput]);
 
   // Camera mode: OCR → DeepSeek parse → structured fields
   const runOcr = useCallback(async () => {

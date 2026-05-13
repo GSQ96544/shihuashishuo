@@ -5,7 +5,7 @@ import { useState } from "react";
 interface Props {
   url: string;
   onUrlChange: (v: string) => void;
-  onFetch: (text: string) => void;
+  onFetch: (text: string) => Promise<void>;
 }
 
 export default function UrlInput({ url, onUrlChange, onFetch }: Props) {
@@ -25,12 +25,14 @@ export default function UrlInput({ url, onUrlChange, onFetch }: Props) {
       const data = await res.json();
       if (data.error) {
         setError(data.error);
+        setLoading(false);
       } else {
-        onFetch(data.text || "未能提取到内容，请尝试手动输入");
+        setLoading(true); // Stay loading during parse
+        await onFetch(data.text || "未能提取到内容，请尝试手动输入");
+        setLoading(false);
       }
     } catch {
       setError("网络请求失败，请检查链接或切换手动输入");
-    } finally {
       setLoading(false);
     }
   }

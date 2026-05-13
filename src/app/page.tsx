@@ -147,11 +147,21 @@ export default function Home() {
 
             {/* URL Mode */}
             {mode === "url" && (
-              <UrlInput
-                url={urlInput}
-                onUrlChange={setUrlInput}
-                onFetch={handleUrlFetched}
-              />
+              <>
+                {step !== "ocr-processing" && (
+                  <UrlInput
+                    url={urlInput}
+                    onUrlChange={setUrlInput}
+                    onFetch={handleUrlFetched}
+                  />
+                )}
+                {step === "ocr-processing" && (
+                  <LoadingOverlay
+                    title="正在抓取并解析商品信息..."
+                    subtitle="从页面提取品牌、品名、配料表"
+                  />
+                )}
+              </>
             )}
           </div>
         )}

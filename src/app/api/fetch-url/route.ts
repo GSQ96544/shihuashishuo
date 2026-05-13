@@ -1,29 +1,48 @@
 import { NextResponse } from "next/server";
+import { fetchAndExtract } from "@/lib/url-fetcher";
 
 export async function POST(request: Request) {
   try {
     const body = await request.json();
     const { url } = body;
 
-    if (!url) {
+    if (!url?.trim()) {
       return NextResponse.json({ error: "请提供URL" }, { status: 400 });
     }
 
     // Validate URL protocol
-    const parsed = new URL(url);
+    let parsed: URL;
+    try {
+      parsed = new URL(url.trim());
+    } catch {
+      return NextResponse.json({ error: "链接格式不正确" }, { status: 400 });
+    }
     if (!["http:", "https:"].includes(parsed.protocol)) {
       return NextResponse.json({ error: "仅支持 http/https 链接" }, { status: 400 });
     }
 
-    // Mock mode: return simulated page content
-    // TODO: Replace with real fetch + text extraction
-    return NextResponse.json({
-      text: `商品名称：100%纯椰子水\n品牌：椰田\n\n宣传语：100%纯天然椰子水，无添加，原汁原味，清爽解渴\n\n配料表：水、椰子水、白砂糖、食用香精、柠檬酸\n\n营养成分表：能量 120kJ/100mL，碳水化合物 6.5g/100mL`,
-      title: "椰田100%椰子水 - 商品详情",
-    });
-  } catch {
+    // Block private IPs (SSRF prevention)
+    const hostname = parsed.hostname;
+    if (
+      hostname === "localhost" ||
+      hostname === "127.0.0.1" ||
+      hostname.startsWith("10.") ||
+      hostname.startsWith("172.16.") ||
+      hostname.startsWith("192.168.") ||
+      hostname.startsWith("0.")
+    ) {
+      return NextResponse.json({ error: "不支持该地址" }, { status: 403 });
+    }
+
+    const result = await fetchAndExtract(url.trim());
+    return NextResponse.json(result);
+  } catch (err) {
+    console.error("URL fetch failed:", err);
     return NextResponse.json(
-      { error: "网页抓取失败，请检查链接或切换手动输入" },
+      {
+        error:
+          "无法抓取该页面内容。部分网站（如淘宝）可能限制访问，请尝试手动输入商品信息。",
+      },
       { status: 500 }
     );
   }
