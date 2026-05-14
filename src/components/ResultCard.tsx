@@ -11,17 +11,18 @@ interface Props {
   isAnalyzing: boolean;
 }
 
-const riskLabel: Record<string, { text: string; color: string; bg: string }> = {
-  high: { text: "高风险", color: "var(--danger-500)", bg: "var(--danger-50)" },
-  medium: { text: "中风险", color: "var(--warning-500)", bg: "var(--warning-50)" },
-  low: { text: "低风险", color: "#2196f3", bg: "#e3f2fd" },
-  none: { text: "未发现问题", color: "var(--success-500)", bg: "var(--success-50)" },
+const riskStyle: Record<string, { text: string; color: string; bg: string; border: string; icon: string }> = {
+  high: { text: "建议谨慎购买", color: "var(--danger-700)", bg: "var(--danger-50)", border: "var(--danger-500)", icon: "⚠️" },
+  medium: { text: "需留意", color: "#e65100", bg: "var(--warning-50)", border: "var(--warning-500)", icon: "⚡" },
+  low: { text: "基本合规", color: "#1565c0", bg: "#e3f2fd", border: "#2196f3", icon: "👀" },
+  none: { text: "未发现问题", color: "var(--success-500)", bg: "var(--success-50)", border: "var(--success-500)", icon: "✅" },
 };
 
 export default function ResultCard({ result, ocrResult, onReanalyze, isAnalyzing }: Props) {
-  const risk = riskLabel[result.riskLevel] || riskLabel.none;
+  const risk = riskStyle[result.riskLevel] || riskStyle.none;
   const hasWarnings = result.warnings.length > 0;
   const [editing, setEditing] = useState(false);
+  const [detailOpen, setDetailOpen] = useState(false);
   const [edit, setEdit] = useState<OcrResult>({ ...ocrResult });
 
   async function handleReanalyze() {
@@ -30,201 +31,115 @@ export default function ResultCard({ result, ocrResult, onReanalyze, isAnalyzing
   }
 
   return (
-    <div className="card fade-in">
-      {/* === Identified Info Bar === */}
+    <div className="card fade-in" style={{ padding: 0, overflow: "hidden" }}>
+      {/* ===== 1. Conclusion Banner — most prominent ===== */}
       <div
         style={{
-          background: "var(--bg-card)",
-          border: "1px solid var(--border)",
-          borderRadius: "var(--radius-sm)",
-          marginBottom: 16,
-          overflow: "hidden",
+          padding: "20px 16px",
+          background: risk.bg,
+          borderBottom: `3px solid ${risk.border}`,
+          display: "flex",
+          alignItems: "flex-start",
+          gap: 12,
         }}
       >
-        {/* Collapsed view */}
-        <div
+        <span style={{ fontSize: 28, lineHeight: 1 }}>{risk.icon}</span>
+        <div style={{ flex: 1 }}>
+          <p style={{ fontSize: 18, fontWeight: 800, color: risk.color, marginBottom: 4 }}>
+            {risk.text}
+          </p>
+          <p style={{ fontSize: 14, lineHeight: 1.6, color: "var(--text-primary)" }}>
+            {result.summary}
+          </p>
+        </div>
+      </div>
+
+      {/* ===== 2. Identified Info Bar (compact, collapsible) ===== */}
+      <div style={{ borderBottom: "1px solid var(--border)" }}>
+        <button
+          onClick={() => setDetailOpen(!detailOpen)}
           style={{
-            padding: "12px 16px",
+            width: "100%",
+            padding: "10px 16px",
+            background: "none",
             display: "flex",
-            alignItems: "flex-start",
+            alignItems: "center",
             justifyContent: "space-between",
-            gap: 12,
+            fontSize: 13,
+            color: "var(--text-secondary)",
+            minHeight: "auto",
+            borderRadius: 0,
           }}
         >
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <p style={{ fontSize: 12, color: "var(--text-hint)", marginBottom: 4 }}>
-              识别信息
-            </p>
-            <p style={{ fontSize: 14, fontWeight: 600, marginBottom: 2 }}>
-              {ocrResult.productName || "未识别到品名"}
-            </p>
-            <p style={{ fontSize: 12, color: "var(--text-secondary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-              配料：{ocrResult.ingredientsText || "—"}
-            </p>
-          </div>
-          <button
-            className="btn-ghost"
-            onClick={() => {
-              setEdit({ ...ocrResult });
-              setEditing(!editing);
-            }}
-            style={{
-              fontSize: 13,
-              color: "var(--primary-500)",
-              fontWeight: 600,
-              flexShrink: 0,
-              padding: "6px 12px",
-            }}
-          >
-            {editing ? "取消" : "修改"}
-          </button>
-        </div>
+          <span>
+            识别：{ocrResult.productName || "—"} | 配料：{ocrResult.ingredientsText?.slice(0, 30) || "—"}…
+          </span>
+          <span style={{ fontSize: 11, color: "var(--text-hint)" }}>
+            {detailOpen ? "收起 ▲" : "详情 ▼"}
+          </span>
+        </button>
 
-        {/* Expanded edit panel */}
-        {editing && (
-          <div
-            style={{
-              padding: "0 16px 16px",
-              borderTop: "1px solid var(--border)",
-              paddingTop: 12,
-              display: "flex",
-              flexDirection: "column",
-              gap: 10,
-            }}
-          >
-            <div>
-              <label style={labelStyle}>品牌</label>
-              <input
-                type="text"
-                value={edit.brand}
-                onChange={(e) => setEdit({ ...edit, brand: e.target.value })}
-                style={{ fontSize: 14, padding: "8px 12px" }}
-              />
+        {detailOpen && (
+          <div style={{ padding: "0 16px 16px" }}>
+            {/* Edit toggle */}
+            <div style={{ marginBottom: 8, textAlign: "right" }}>
+              <button
+                onClick={() => {
+                  setEdit({ ...ocrResult });
+                  setEditing(!editing);
+                }}
+                style={{
+                  fontSize: 12,
+                  color: "var(--primary-500)",
+                  background: "var(--primary-50)",
+                  padding: "4px 10px",
+                  borderRadius: 4,
+                  fontWeight: 600,
+                  minHeight: "auto",
+                }}
+              >
+                {editing ? "取消修改" : "修改"}
+              </button>
             </div>
-            <div>
-              <label style={labelStyle}>商品名称</label>
-              <input
-                type="text"
-                value={edit.productName}
-                onChange={(e) => setEdit({ ...edit, productName: e.target.value })}
-                style={{ fontSize: 14, padding: "8px 12px" }}
-              />
-            </div>
-            <div>
-              <label style={labelStyle}>宣传语</label>
-              <textarea
-                value={edit.claimsText}
-                onChange={(e) => setEdit({ ...edit, claimsText: e.target.value })}
-                style={{ fontSize: 14, minHeight: 50 }}
-                placeholder="包装上还有什么宣传语？如：无糖、高蛋白、天然无添加…"
-              />
-              <p className="text-hint" style={{ marginTop: 2 }}>
-                封面宣传语光靠配料表照片可能识别不到，手动补上分析更准
-              </p>
-            </div>
-            <div>
-              <label style={labelStyle}>配料表</label>
-              <textarea
-                value={edit.ingredientsText}
-                onChange={(e) => setEdit({ ...edit, ingredientsText: e.target.value })}
-                style={{ fontSize: 14, minHeight: 60 }}
-              />
-            </div>
-            <button
-              className="btn-primary"
-              onClick={handleReanalyze}
-              disabled={isAnalyzing}
-              style={{ fontSize: 14, padding: "10px" }}
-            >
-              {isAnalyzing ? "分析中..." : "重新分析"}
-            </button>
+
+            {!editing ? (
+              <div style={{ fontSize: 13, lineHeight: 1.6, color: "var(--text-secondary)" }}>
+                <p><strong>品牌：</strong>{ocrResult.brand || "—"}</p>
+                <p><strong>品名：</strong>{ocrResult.productName || "—"}</p>
+                <p><strong>宣传语：</strong>{ocrResult.claimsText || "—"}</p>
+                <p><strong>配料：</strong>{ocrResult.ingredientsText || "—"}</p>
+              </div>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                <input value={edit.brand} onChange={e => setEdit({ ...edit, brand: e.target.value })} placeholder="品牌" style={{ fontSize: 13, padding: "6px 10px" }} />
+                <input value={edit.productName} onChange={e => setEdit({ ...edit, productName: e.target.value })} placeholder="商品名称" style={{ fontSize: 13, padding: "6px 10px" }} />
+                <textarea value={edit.claimsText} onChange={e => setEdit({ ...edit, claimsText: e.target.value })} placeholder="包装宣传语" style={{ fontSize: 13, minHeight: 40 }} />
+                <p className="text-hint" style={{ marginTop: -4 }}>封面宣传语光靠配料表照片可能识别不到，手动补上分析更准</p>
+                <textarea value={edit.ingredientsText} onChange={e => setEdit({ ...edit, ingredientsText: e.target.value })} placeholder="配料表" style={{ fontSize: 13, minHeight: 50 }} />
+                <button className="btn-primary" onClick={handleReanalyze} disabled={isAnalyzing} style={{ fontSize: 13, padding: "8px" }}>
+                  {isAnalyzing ? "分析中…" : "重新分析"}
+                </button>
+              </div>
+            )}
           </div>
         )}
       </div>
 
-      {/* === Result === */}
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          marginBottom: 16,
-        }}
-      >
-        <h3 style={{ fontSize: 16, fontWeight: 700 }}>分析结果</h3>
-        <span
-          style={{
-            padding: "4px 12px",
-            borderRadius: 20,
-            fontSize: 13,
-            fontWeight: 700,
-            background: risk.bg,
-            color: risk.color,
-          }}
-        >
-          {risk.text}
-        </span>
-      </div>
-
-      <div
-        style={{
-          background: "var(--primary-50)",
-          borderRadius: "var(--radius-sm)",
-          padding: "12px 16px",
-          marginBottom: 16,
-        }}
-      >
-        <p style={{ fontSize: 14, color: "var(--text-secondary)" }}>
+      {/* ===== 3. Warning details ===== */}
+      <div style={{ padding: "16px" }}>
+        <p style={{ fontSize: 13, color: "var(--text-secondary)", marginBottom: 8 }}>
           商品类型：<strong>{result.productType}</strong>
+          {result.confidence === "low" && <span style={{ color: "var(--text-hint)" }}>（置信度较低）</span>}
         </p>
-      </div>
 
-      {hasWarnings ? (
-        <WarningBanner warnings={result.warnings} />
-      ) : (
-        <div
-          style={{
-            background: "var(--success-50)",
-            borderRadius: "var(--radius-sm)",
-            padding: "20px 16px",
-            textAlign: "center",
-          }}
-        >
-          <span style={{ fontSize: 32 }}>✅</span>
-          <p style={{ marginTop: 8, fontWeight: 600, color: "var(--success-500)" }}>
-            配料表与宣传一致，未发现明显问题
+        {hasWarnings ? (
+          <WarningBanner warnings={result.warnings} />
+        ) : (
+          <p style={{ fontSize: 14, color: "var(--success-500)", fontWeight: 600, textAlign: "center", padding: "12px 0" }}>
+            配料表各项与宣传内容一致
           </p>
-        </div>
-      )}
-
-      <div
-        style={{
-          marginTop: 16,
-          padding: "16px",
-          background: hasWarnings ? "var(--warning-50)" : "var(--primary-50)",
-          borderRadius: "var(--radius-sm)",
-          borderLeft: `4px solid ${hasWarnings ? "var(--danger-500)" : "var(--success-500)"}`,
-        }}
-      >
-        <p style={{ fontSize: 13, color: "var(--text-secondary)", marginBottom: 4 }}>
-          {hasWarnings ? "💡 食话说" : "📋 小结"}
-        </p>
-        <p style={{ fontSize: 15, fontWeight: 600, lineHeight: 1.6 }}>
-          {result.summary}
-        </p>
+        )}
       </div>
-
-      <p className="text-hint" style={{ marginTop: 12, textAlign: "center" }}>
-        分析置信度：{result.confidence === "high" ? "高" : result.confidence === "medium" ? "中" : "低"}
-      </p>
     </div>
   );
 }
-
-const labelStyle: React.CSSProperties = {
-  display: "block",
-  fontSize: 13,
-  fontWeight: 600,
-  marginBottom: 2,
-  color: "var(--text-secondary)",
-};
