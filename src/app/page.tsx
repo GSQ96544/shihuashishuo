@@ -11,6 +11,8 @@ import StepIndicator from "@/components/StepIndicator";
 import LoadingOverlay from "@/components/LoadingOverlay";
 import ResultCard from "@/components/ResultCard";
 import InstallBanner from "@/components/InstallBanner";
+import UserProfileSelector from "@/components/UserProfileSelector";
+import type { UserProfile } from "@/lib/types";
 
 const riskIcon: Record<string, string> = {
   high: "🔴",
@@ -30,6 +32,8 @@ function timeAgo(ts: number): string {
 export default function Home() {
   const {
     state,
+    profile,
+    setProfile,
     setMode,
     setImage,
     setManualProductName,
@@ -115,6 +119,8 @@ export default function Home() {
         {!viewingItem && (step === "input" || step === "ocr-processing") && (
           <div className="fade-in">
             <InputSelector mode={mode} onModeChange={setMode} />
+            <UserProfileSelector profile={profile}
+              onChange={(p: UserProfile) => setProfile(p)} />
 
             {mode === "camera" && (
               <>

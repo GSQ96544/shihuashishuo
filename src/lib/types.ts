@@ -7,6 +7,17 @@ export type FlowStep =
 
 export type InputMode = "camera" | "manual";
 
+export type UserProfile =
+  | "default"
+  | "pregnant"
+  | "breastfeeding"
+  | "infant"
+  | "child"
+  | "elderly"
+  | "diabetic"
+  | "hypertension"
+  | "fitness";
+
 export interface OcrResult {
   brand: string;
   productName: string;

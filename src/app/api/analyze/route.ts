@@ -6,7 +6,7 @@ import type { OcrResult } from "@/lib/types";
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { productName, ingredientsText, claimsText, brand } = body;
+    const { productName, ingredientsText, claimsText, brand, userProfile } = body;
 
     if (!productName || !ingredientsText) {
       return NextResponse.json(
@@ -25,7 +25,7 @@ export async function POST(request: Request) {
     // Try real AI first, fall back to mock
     let result;
     try {
-      result = await callDeepSeek(ocrResult);
+      result = await callDeepSeek(ocrResult, userProfile);
     } catch (aiErr) {
       console.warn("DeepSeek unavailable, using mock:", aiErr);
       result = mockAnalyze(ocrResult);
