@@ -35,16 +35,18 @@ export default function Home() {
     profiles,
     setProfiles,
     setMode,
-    setImage,
+    setFrontImage,
+    setLabelImage,
     setManualProductName,
     setManualIngredients,
+    setManualClaims,
     runOcr,
     submitManual,
     reanalyze,
     resetAll,
   } = useAnalysis();
 
-  const { mode, step, image, ocrResult, analysisResult, manualProductName, manualIngredients } = state;
+  const { mode, step, frontImage, labelImage, ocrResult, analysisResult, manualProductName, manualIngredients, manualClaims } = state;
   const { items: history, add, clear: clearHistory } = useHistory();
 
   // Track whether we've saved the current analysis to history
@@ -124,24 +126,43 @@ export default function Home() {
 
             {mode === "camera" && (
               <>
-                {!image ? (
+                {!frontImage ? (
                   <CameraCapture
-                    onImageReady={setImage}
-                    label="点击拍摄配料表"
-                    hint="拍一张配料表即可，AI会自动识别品名和配料"
+                    onImageReady={setFrontImage}
+                    label="第1步：拍摄包装正面"
+                    hint="拍摄品牌、品名和宣传语部分"
                   />
                 ) : (
                   <ImagePreview
-                    src={image}
-                    label="配料表照片"
+                    src={frontImage}
+                    label="包装正面"
                     onRetake={() => {
-                      setImage("");
-                      setTimeout(() => setImage(""), 0);
+                      setFrontImage("");
+                      setTimeout(() => setFrontImage(""), 0);
                     }}
                   />
                 )}
 
-                {image && (
+                {frontImage && !labelImage && (
+                  <CameraCapture
+                    onImageReady={setLabelImage}
+                    label="第2步：拍摄配料表"
+                    hint="拍摄包装背面的配料表和营养成分表"
+                  />
+                )}
+
+                {labelImage && (
+                  <ImagePreview
+                    src={labelImage}
+                    label="配料表"
+                    onRetake={() => {
+                      setLabelImage("");
+                      setTimeout(() => setLabelImage(""), 0);
+                    }}
+                  />
+                )}
+
+                {frontImage && labelImage && (
                   <button
                     className="btn-primary"
                     onClick={runOcr}
@@ -165,8 +186,10 @@ export default function Home() {
                 <ManualInput
                   productName={manualProductName}
                   ingredients={manualIngredients}
+                  claims={manualClaims}
                   onProductNameChange={setManualProductName}
                   onIngredientsChange={setManualIngredients}
+                  onClaimsChange={setManualClaims}
                 />
                 <button
                   className="btn-primary"

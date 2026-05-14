@@ -46,12 +46,14 @@ async function callAnalyzeApi(ocr: OcrResult, userProfiles: UserProfile[]): Prom
 const initialState: AppState = {
   mode: "camera",
   step: "input",
-  image: null,
+  frontImage: null,
+  labelImage: null,
   ocrResult: null,
   analysisResult: null,
   error: null,
   manualProductName: "",
   manualIngredients: "",
+  manualClaims: "",
 };
 
 export function useAnalysis() {
@@ -69,8 +71,12 @@ export function useAnalysis() {
     setState((s) => ({ ...s, mode, step: "input", error: null }));
   }, []);
 
-  const setImage = useCallback((img: string) => {
-    setState((s) => ({ ...s, image: img }));
+  const setFrontImage = useCallback((img: string) => {
+    setState((s) => ({ ...s, frontImage: img }));
+  }, []);
+
+  const setLabelImage = useCallback((img: string) => {
+    setState((s) => ({ ...s, labelImage: img }));
   }, []);
 
   const setManualProductName = useCallback((v: string) => {
@@ -81,12 +87,21 @@ export function useAnalysis() {
     setState((s) => ({ ...s, manualIngredients: v }));
   }, []);
 
-  // Camera mode: OCR → parse → analyze — all in one go
+  const setManualClaims = useCallback((v: string) => {
+    setState((s) => ({ ...s, manualClaims: v }));
+  }, []);
+
+  // Camera mode: OCR both images → parse → analyze
   const runOcr = useCallback(async () => {
     setState((s) => ({ ...s, step: "ocr-processing", error: null }));
     try {
-      const rawText = state.image ? await ocrImage(state.image) : "";
-      if (!rawText.trim()) {
+      const [frontText, labelText] = await Promise.all([
+        state.frontImage ? ocrImage(state.frontImage) : Promise.resolve(""),
+        state.labelImage ? ocrImage(state.labelImage) : Promise.resolve(""),
+      ]);
+
+      const combinedText = [frontText, labelText].filter(Boolean).join("\n");
+      if (!combinedText.trim()) {
         setState((s) => ({ ...s, step: "error", error: "未识别到文字，请调整角度重拍，或切换手动输入" }));
         return;
       }
@@ -96,14 +111,14 @@ export function useAnalysis() {
         const parseRes = await fetch("/api/parse-ocr", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ rawText }),
+          body: JSON.stringify({ rawText: combinedText }),
         });
         const parseData = await parseRes.json();
         ocrResult = parseData.error
-          ? { brand: "", productName: "", claimsText: rawText, ingredientsText: rawText }
+          ? { brand: "", productName: "", claimsText: frontText, ingredientsText: labelText || frontText }
           : parseData;
       } catch {
-        ocrResult = { brand: "", productName: "", claimsText: rawText, ingredientsText: rawText };
+        ocrResult = { brand: "", productName: "", claimsText: frontText, ingredientsText: labelText || frontText };
       }
 
       setState((s) => ({ ...s, ocrResult, step: "analyzing" }));
@@ -112,15 +127,15 @@ export function useAnalysis() {
     } catch (err) {
       setState((s) => ({ ...s, step: "error", error: err instanceof Error ? err.message : "识别失败，请重试" }));
     }
-  }, [state.image, profiles]);
+  }, [state.frontImage, state.labelImage, profiles]);
 
-  // Manual mode: skip OCR, analyze directly
+  // Manual mode: analyze directly with typed fields
   const submitManual = useCallback(async () => {
     setState((s) => ({ ...s, step: "analyzing", error: null }));
     const ocrResult: OcrResult = {
       brand: "",
       productName: state.manualProductName,
-      claimsText: "",
+      claimsText: state.manualClaims,
       ingredientsText: state.manualIngredients,
     };
     setState((s) => ({ ...s, ocrResult }));
@@ -130,7 +145,7 @@ export function useAnalysis() {
     } catch (err) {
       setState((s) => ({ ...s, step: "error", error: err instanceof Error ? err.message : "分析失败，请重试" }));
     }
-  }, [state.manualProductName, state.manualIngredients, profiles]);
+  }, [state.manualProductName, state.manualIngredients, state.manualClaims, profiles]);
 
   const reanalyze = useCallback(async (editedOcr: OcrResult) => {
     setState((s) => ({ ...s, step: "analyzing", error: null, ocrResult: editedOcr }));
@@ -144,5 +159,5 @@ export function useAnalysis() {
 
   const resetAll = useCallback(() => setState(initialState), []);
 
-  return { state, profiles, setProfiles, setMode, setImage, setManualProductName, setManualIngredients, runOcr, submitManual, reanalyze, resetAll };
+  return { state, profiles, setProfiles, setMode, setFrontImage, setLabelImage, setManualProductName, setManualIngredients, setManualClaims, runOcr, submitManual, reanalyze, resetAll };
 }

@@ -44,10 +44,12 @@ export interface AnalysisResult {
 export interface AppState {
   mode: InputMode;
   step: FlowStep;
-  image: string | null;
+  frontImage: string | null;
+  labelImage: string | null;
   ocrResult: OcrResult | null;
   analysisResult: AnalysisResult | null;
   error: string | null;
   manualProductName: string;
   manualIngredients: string;
+  manualClaims: string;
 }
