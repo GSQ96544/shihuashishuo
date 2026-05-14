@@ -116,7 +116,11 @@ export default function ResultCard({ result, ocrResult, onReanalyze, isAnalyzing
                 value={edit.claimsText}
                 onChange={(e) => setEdit({ ...edit, claimsText: e.target.value })}
                 style={{ fontSize: 14, minHeight: 50 }}
+                placeholder="包装上还有什么宣传语？如：无糖、高蛋白、天然无添加…"
               />
+              <p className="text-hint" style={{ marginTop: 2 }}>
+                封面宣传语光靠配料表照片可能识别不到，手动补上分析更准
+              </p>
             </div>
             <div>
               <label style={labelStyle}>配料表</label>
