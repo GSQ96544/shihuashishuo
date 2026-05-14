@@ -5,7 +5,7 @@ interface Props {
   totalSteps: number;
 }
 
-const stepLabels = ["输入信息", "确认内容", "查看结果"];
+const stepLabels = ["输入信息", "AI分析", "查看结果"];
 
 export default function StepIndicator({ currentStep, totalSteps }: Props) {
   return (

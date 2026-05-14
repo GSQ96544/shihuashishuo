@@ -1,7 +1,6 @@
 export type FlowStep =
   | "input"
   | "ocr-processing"
-  | "ocr-review"
   | "analyzing"
   | "done"
   | "error";
@@ -34,8 +33,7 @@ export interface AnalysisResult {
 export interface AppState {
   mode: InputMode;
   step: FlowStep;
-  frontImage: string | null;
-  labelImage: string | null;
+  image: string | null;
   ocrResult: OcrResult | null;
   analysisResult: AnalysisResult | null;
   error: string | null;

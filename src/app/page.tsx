@@ -30,8 +30,7 @@ export default function Home() {
   const {
     state,
     setMode,
-    setFrontImage,
-    setLabelImage,
+    setImage,
     setManualProductName,
     setManualIngredients,
     runOcr,
@@ -40,7 +39,7 @@ export default function Home() {
     resetAll,
   } = useAnalysis();
 
-  const { mode, step, frontImage, labelImage, ocrResult, analysisResult, manualProductName, manualIngredients } = state;
+  const { mode, step, image, ocrResult, analysisResult, manualProductName, manualIngredients } = state;
   const { items: history, add, clear: clearHistory } = useHistory();
 
   // Track whether we've saved the current analysis to history
@@ -118,24 +117,24 @@ export default function Home() {
 
             {mode === "camera" && (
               <>
-                {!frontImage ? (
+                {!image ? (
                   <CameraCapture
-                    onImageReady={setFrontImage}
+                    onImageReady={setImage}
                     label="点击拍摄配料表"
                     hint="拍一张配料表即可，AI会自动识别品名和配料"
                   />
                 ) : (
                   <ImagePreview
-                    src={frontImage}
+                    src={image}
                     label="配料表照片"
                     onRetake={() => {
-                      setFrontImage("");
-                      setTimeout(() => setFrontImage(""), 0);
+                      setImage("");
+                      setTimeout(() => setImage(""), 0);
                     }}
                   />
                 )}
 
-                {frontImage && (
+                {image && (
                   <button
                     className="btn-primary"
                     onClick={runOcr}
