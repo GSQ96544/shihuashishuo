@@ -3,14 +3,16 @@
 import { useState, useCallback, useEffect } from "react";
 import type { AppState, OcrResult, AnalysisResult, InputMode, UserProfile } from "@/lib/types";
 
-const PROFILE_KEY = "shihuashishuo_profile";
+const PROFILES_KEY = "shihuashishuo_profiles";
 
-function loadProfile(): UserProfile {
-  if (typeof window === "undefined") return "default";
+function loadProfiles(): UserProfile[] {
+  if (typeof window === "undefined") return [];
   try {
-    const v = localStorage.getItem(PROFILE_KEY);
-    return (v as UserProfile) || "default";
-  } catch { return "default"; }
+    const v = localStorage.getItem(PROFILES_KEY);
+    if (!v) return [];
+    const arr = JSON.parse(v);
+    return Array.isArray(arr) ? arr : [];
+  } catch { return []; }
 }
 
 async function ocrImage(dataUrl: string): Promise<string> {
@@ -24,7 +26,7 @@ async function ocrImage(dataUrl: string): Promise<string> {
   return data.text || "";
 }
 
-async function callAnalyzeApi(ocr: OcrResult, userProfile: UserProfile): Promise<AnalysisResult> {
+async function callAnalyzeApi(ocr: OcrResult, userProfiles: UserProfile[]): Promise<AnalysisResult> {
   const res = await fetch("/api/analyze", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -33,7 +35,7 @@ async function callAnalyzeApi(ocr: OcrResult, userProfile: UserProfile): Promise
       ingredientsText: ocr.ingredientsText,
       claimsText: ocr.claimsText,
       brand: ocr.brand,
-      userProfile,
+      userProfile: userProfiles.join(","),
     }),
   });
   const data = await res.json();
@@ -54,13 +56,13 @@ const initialState: AppState = {
 
 export function useAnalysis() {
   const [state, setState] = useState<AppState>(initialState);
-  const [profile, setProfileState] = useState<UserProfile>("default");
+  const [profiles, setProfilesState] = useState<UserProfile[]>([]);
 
-  useEffect(() => { setProfileState(loadProfile()); }, []);
+  useEffect(() => { setProfilesState(loadProfiles()); }, []);
 
-  const setProfile = useCallback((p: UserProfile) => {
-    setProfileState(p);
-    try { localStorage.setItem(PROFILE_KEY, p); } catch { /* */ }
+  const setProfiles = useCallback((p: UserProfile[]) => {
+    setProfilesState(p);
+    try { localStorage.setItem(PROFILES_KEY, JSON.stringify(p)); } catch { /* */ }
   }, []);
 
   const setMode = useCallback((mode: InputMode) => {
@@ -89,7 +91,6 @@ export function useAnalysis() {
         return;
       }
 
-      // Parse raw OCR into structured fields
       let ocrResult: OcrResult;
       try {
         const parseRes = await fetch("/api/parse-ocr", {
@@ -106,12 +107,12 @@ export function useAnalysis() {
       }
 
       setState((s) => ({ ...s, ocrResult, step: "analyzing" }));
-      const analysisResult = await callAnalyzeApi(ocrResult, profile);
+      const analysisResult = await callAnalyzeApi(ocrResult, profiles);
       setState((s) => ({ ...s, analysisResult, step: "done" }));
     } catch (err) {
       setState((s) => ({ ...s, step: "error", error: err instanceof Error ? err.message : "识别失败，请重试" }));
     }
-  }, [state.image, profile]);
+  }, [state.image, profiles]);
 
   // Manual mode: skip OCR, analyze directly
   const submitManual = useCallback(async () => {
@@ -124,24 +125,24 @@ export function useAnalysis() {
     };
     setState((s) => ({ ...s, ocrResult }));
     try {
-      const analysisResult = await callAnalyzeApi(ocrResult, profile);
+      const analysisResult = await callAnalyzeApi(ocrResult, profiles);
       setState((s) => ({ ...s, analysisResult, step: "done" }));
     } catch (err) {
       setState((s) => ({ ...s, step: "error", error: err instanceof Error ? err.message : "分析失败，请重试" }));
     }
-  }, [state.manualProductName, state.manualIngredients]);
+  }, [state.manualProductName, state.manualIngredients, profiles]);
 
   const reanalyze = useCallback(async (editedOcr: OcrResult) => {
     setState((s) => ({ ...s, step: "analyzing", error: null, ocrResult: editedOcr }));
     try {
-      const analysisResult = await callAnalyzeApi(editedOcr, profile);
+      const analysisResult = await callAnalyzeApi(editedOcr, profiles);
       setState((s) => ({ ...s, analysisResult, step: "done" }));
     } catch (err) {
       setState((s) => ({ ...s, step: "error", error: err instanceof Error ? err.message : "重新分析失败" }));
     }
-  }, []);
+  }, [profiles]);
 
   const resetAll = useCallback(() => setState(initialState), []);
 
-  return { state, profile, setProfile, setMode, setImage, setManualProductName, setManualIngredients, runOcr, submitManual, reanalyze, resetAll };
+  return { state, profiles, setProfiles, setMode, setImage, setManualProductName, setManualIngredients, runOcr, submitManual, reanalyze, resetAll };
 }

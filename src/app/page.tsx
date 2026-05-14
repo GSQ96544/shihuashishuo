@@ -32,8 +32,8 @@ function timeAgo(ts: number): string {
 export default function Home() {
   const {
     state,
-    profile,
-    setProfile,
+    profiles,
+    setProfiles,
     setMode,
     setImage,
     setManualProductName,
@@ -119,8 +119,8 @@ export default function Home() {
         {!viewingItem && (step === "input" || step === "ocr-processing") && (
           <div className="fade-in">
             <InputSelector mode={mode} onModeChange={setMode} />
-            <UserProfileSelector profile={profile}
-              onChange={(p: UserProfile) => setProfile(p)} />
+            <UserProfileSelector selected={profiles}
+              onChange={(p: UserProfile[]) => setProfiles(p)} />
 
             {mode === "camera" && (
               <>

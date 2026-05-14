@@ -126,7 +126,7 @@ export async function callDeepSeek(ocrResult: OcrResult, userProfile?: string): 
     `配料表：${ocrResult.ingredientsText}`,
   ];
   if (userProfile && userProfile !== "default") {
-    parts.push(`目标人群：${userProfile}（请额外检测该人群的禁忌成分）`);
+    parts.push(`目标人群：${userProfile}（请叠加检测所有列出人群的禁忌成分）`);
   }
   const userMessage = parts.filter(Boolean).join("\n");
 
