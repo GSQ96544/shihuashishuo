@@ -10,6 +10,7 @@ import ImagePreview from "@/components/ImagePreview";
 import StepIndicator from "@/components/StepIndicator";
 import LoadingOverlay from "@/components/LoadingOverlay";
 import ResultCard from "@/components/ResultCard";
+import InstallBanner from "@/components/InstallBanner";
 
 const riskIcon: Record<string, string> = {
   high: "🔴",
@@ -304,6 +305,8 @@ export default function Home() {
           不构成商品鉴定或法律定性。购买决策请结合多方面信息判断。
         </p>
       </footer>
+
+      <InstallBanner />
     </div>
   );
 }

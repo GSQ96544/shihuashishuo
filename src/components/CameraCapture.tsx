@@ -68,11 +68,6 @@ export default function CameraCapture({ onImageReady, label, hint }: Props) {
     onImageReady(dataUrl);
   }
 
-  // Check if running in WeChat browser
-  const isWechat =
-    typeof navigator !== "undefined" &&
-    /MicroMessenger/i.test(navigator.userAgent);
-
   return (
     <div style={{ marginBottom: 16 }}>
       <button
@@ -109,7 +104,6 @@ export default function CameraCapture({ onImageReady, label, hint }: Props) {
         ref={inputRef}
         type="file"
         accept="image/*"
-        capture={isWechat ? undefined : "environment"}
         onChange={handleFile}
         style={{ display: "none" }}
       />
